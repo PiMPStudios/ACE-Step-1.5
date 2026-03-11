@@ -21,6 +21,11 @@ from torch import nn
 
 from einops import rearrange
 
+from acestep.core.generation.handler.repaint_step_injection import (
+    apply_repaint_boundary_blend,
+    apply_repaint_step_injection,
+)
+
 # Transformers imports (sorted by submodule, then alphabetically)
 from transformers.cache_utils import Cache, DynamicCache, EncoderDecoderCache
 from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
@@ -1809,6 +1814,9 @@ class AceStepConditionGenerationModel(AceStepPreTrainedModel):
         use_adg: bool = False,
         shift: float = 1.0,
         cover_noise_strength: float = 0.0,
+        repaint_mask: Optional[torch.Tensor] = None,
+        clean_src_latents: Optional[torch.FloatTensor] = None,
+        repaint_crossfade_frames: int = 10,
         **kwargs,
     ):
         if attention_mask is None:
@@ -1971,14 +1979,26 @@ class AceStepConditionGenerationModel(AceStepPreTrainedModel):
                     pred_clean = self.get_x0_from_noise(xt, vt, t_curr_bsz)
                     next_timestep = 1.0 - (float(step_idx + 1) / infer_steps)
                     xt = self.renoise(pred_clean, next_timestep)
+                    t_after_step = next_timestep
                 elif infer_method == "ode":
                     # Ordinary Differential Equation: Euler method
                     # dx/dt = -v, so x_{t+1} = x_t - v_t * dt
                     dt = t_curr - t_prev
                     dt_tensor = dt * torch.ones((bsz,), device=device, dtype=dtype).unsqueeze(-1).unsqueeze(-1)
                     xt = xt - vt * dt_tensor
-        
+                    t_after_step = t_prev
+
+                if repaint_mask is not None and clean_src_latents is not None:
+                    xt = apply_repaint_step_injection(
+                        xt, clean_src_latents, repaint_mask, t_after_step, noise,
+                    )
+
         x_gen = xt
+        if repaint_mask is not None and clean_src_latents is not None:
+            x_gen = apply_repaint_boundary_blend(
+                x_gen, clean_src_latents, repaint_mask, repaint_crossfade_frames,
+            )
+
         end_time = time.time()
         time_costs["diffusion_time_cost"] = end_time - start_time
         time_costs["diffusion_per_step_time_cost"] = time_costs["diffusion_time_cost"] / infer_steps
