@@ -82,17 +82,34 @@ class LLMHandler:
     def _clear_accelerator_cache(self) -> None:
         """Release freed accelerator memory back to the driver.
 
-        Clears the cache of the accelerator that was actually used for
-        generation (based on ``self.device``), rather than clearing by
-        availability order.  Supports CUDA, XPU (Intel), and MPS
+        Synchronises the device *before* releasing cached blocks so that
+        every in-flight async write has landed and the freed blocks are
+        actually reclaimable.  Supports CUDA, XPU (Intel), and MPS
         (Apple Silicon) backends.
         """
-        active_device = str(getattr(self, "device", "cpu")).split(":")[0]
+        try:
+            active_device = str(getattr(self, "device", "cpu")).split(":")[0]
+        except (TypeError, AttributeError):
+            active_device = None
+
+        # Fallback: if device is unset/None, detect by availability
+        if not active_device or active_device in ("cpu", "None"):
+            if torch.cuda.is_available():
+                active_device = "cuda"
+            elif hasattr(torch, "xpu") and torch.xpu.is_available():
+                active_device = "xpu"
+            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                active_device = "mps"
+
         if active_device == "cuda" and torch.cuda.is_available():
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
         elif active_device == "xpu" and hasattr(torch, "xpu") and torch.xpu.is_available():
+            torch.xpu.synchronize()
             torch.xpu.empty_cache()
         elif active_device == "mps" and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            if hasattr(torch.mps, "synchronize"):
+                torch.mps.synchronize()
             if hasattr(torch.mps, "empty_cache"):
                 torch.mps.empty_cache()
 
