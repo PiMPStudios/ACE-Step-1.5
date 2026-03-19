@@ -29,10 +29,12 @@ class ApiKeyLockTests(unittest.TestCase):
         errors: list = []
 
         def _writer(value: str):
+            """Set api_key after barrier synchronization."""
             barrier.wait()
             set_api_key(value)
 
         def _reader():
+            """Read api_key after barrier synchronization."""
             barrier.wait()
             key = _get_api_key()
             if key is not None and key not in ("key-a", "key-b"):
@@ -67,6 +69,7 @@ class ResultCacheFallbackTests(unittest.TestCase):
         errors: list = []
 
         def _store(idx: int):
+            """Store a result after barrier synchronization."""
             barrier.wait()
             try:
                 store_result(f"task-{idx}", {"idx": idx})
@@ -74,6 +77,7 @@ class ResultCacheFallbackTests(unittest.TestCase):
                 errors.append(str(exc))
 
         def _get(idx: int):
+            """Retrieve a result after barrier synchronization."""
             barrier.wait()
             try:
                 get_result(f"task-{idx}")

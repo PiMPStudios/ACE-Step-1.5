@@ -15,6 +15,7 @@ class I18nThreadSafetyTests(unittest.TestCase):
         barrier = threading.Barrier(8)
 
         def _call_get_i18n():
+            """Fetch singleton after barrier synchronization."""
             barrier.wait()
             results.append(id(get_i18n()))
 
