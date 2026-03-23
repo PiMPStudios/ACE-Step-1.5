@@ -66,6 +66,7 @@
 | ✅ LRC Generation | Auto-generate lyric timestamps for generated music |
 | ✅ LoRA Training | One-click annotation & training in Gradio. 8 songs, 1 hour on 3090 (12GB VRAM) |
 | ✅ Quality Scoring | Automatic quality assessment for generated audio |
+| ✅ MCP Server | Claude Code / Cursor tool integration via Model Context Protocol |
 
 ## 🔔 Staying ahead
 Star ACE-Step on GitHub and be instantly notified of new releases
@@ -177,6 +178,7 @@ LANGUAGE=en
 | 🐍 **Python API** | Programmatic access for integration | [Guide](./docs/en/INFERENCE.md) |
 | 🌐 **REST API** | HTTP-based async API for services | [Guide](./docs/en/API.md) |
 | ⌨️ **CLI** | Interactive wizard and configuration | [Guide](./docs/en/CLI.md) |
+| 🤖 **MCP Server** | Claude Code / Cursor tool integration | [Guide](./docs/en/MCP.md) |
 
 ### Setup & Configuration
 
