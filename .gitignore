@@ -258,3 +258,7 @@ docs/.vitepress/dist/
 docs/.vitepress/cache/
 docs/en/awesome.md
 package-lock.json
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
